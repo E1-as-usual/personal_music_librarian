@@ -15,3 +15,6 @@ class FileEntry:
     audio_hash: str | None
     codec: str
     is_missing: bool
+    has_cover: bool = False
+    cover_mime: str | None = None
+    cover_size_bytes: int | None = None
