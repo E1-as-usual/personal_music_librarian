@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 
 
 COLUMNS = [
+    "ID",
     "Title",
     "Artist",
     "Album Artist",
@@ -28,6 +29,11 @@ class TrackTableModel(QAbstractTableModel):
         self._rows = [dict(row) for row in rows]
         self.endResetModel()
 
+    def row_at(self, row_index: int) -> dict | None:
+        if row_index < 0 or row_index >= len(self._rows):
+            return None
+        return self._rows[row_index]
+
     def rowCount(self, parent=QModelIndex()) -> int:
         if parent.isValid():
             return 0
@@ -46,31 +52,33 @@ class TrackTableModel(QAbstractTableModel):
         column = index.column()
 
         if column == 0:
-            return row.get("title") or ""
+            return row.get("id") or ""
         if column == 1:
-            return row.get("artist") or ""
+            return row.get("title") or ""
         if column == 2:
-            return row.get("albumartist") or ""
+            return row.get("artist") or ""
         if column == 3:
-            return row.get("album") or ""
+            return row.get("albumartist") or ""
         if column == 4:
-            return row.get("year") or ""
+            return row.get("album") or ""
         if column == 5:
-            return row.get("discnumber") or ""
+            return row.get("year") or ""
         if column == 6:
-            return row.get("tracknumber") or ""
+            return row.get("discnumber") or ""
         if column == 7:
+            return row.get("tracknumber") or ""
+        if column == 8:
             duration = row.get("duration")
             if duration is None:
                 return ""
             minutes = int(duration) // 60
             seconds = int(duration) % 60
             return f"{minutes}:{seconds:02d}"
-        if column == 8:
-            return row.get("sample_rate") or ""
         if column == 9:
-            return row.get("bit_depth") or ""
+            return row.get("sample_rate") or ""
         if column == 10:
+            return row.get("bit_depth") or ""
+        if column == 11:
             return row.get("path") or ""
 
         return None
