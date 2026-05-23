@@ -1,3 +1,4 @@
+from PySide6.QtWidgets import QCheckBox
 from PySide6.QtWidgets import QFormLayout
 from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QLabel
@@ -47,6 +48,9 @@ class MetadataEditorPage(QWidget):
         self.discnumber_box = QSpinBox()
         self.discnumber_box.setMaximum(999)
 
+        self.write_to_file_checkbox = QCheckBox("Write changes to FLAC file")
+        self.write_to_file_checkbox.setChecked(True)
+
         form = QFormLayout()
         form.addRow("Title", self.title_edit)
         form.addRow("Artist", self.artist_edit)
@@ -66,6 +70,7 @@ class MetadataEditorPage(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(topbar)
         layout.addLayout(form)
+        layout.addWidget(self.write_to_file_checkbox)
         layout.addWidget(self.save_button)
         layout.addWidget(self.status_label)
         layout.addStretch(1)
@@ -115,6 +120,7 @@ class MetadataEditorPage(QWidget):
                 "tracknumber": self.tracknumber_box.value(),
                 "discnumber": self.discnumber_box.value(),
             },
+            write_to_file=self.write_to_file_checkbox.isChecked(),
         )
 
         self.status_label.setText(f"Saved metadata for track {self.current_track_id}")
