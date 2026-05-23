@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Iterator
 import sqlite3
 
+from personal_music_librarian.config.paths import AppPaths
+
 
 DATABASE_NAME = "library.db"
 SCHEMA_FILE = "schema.sql"
@@ -10,7 +12,8 @@ SCHEMA_FILE = "schema.sql"
 
 class Database:
     def __init__(self, root: Path | None = None) -> None:
-        self.root = root or Path.cwd()
+        self.root = root or AppPaths.resolve().data_dir
+        self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / DATABASE_NAME
 
     @contextmanager
