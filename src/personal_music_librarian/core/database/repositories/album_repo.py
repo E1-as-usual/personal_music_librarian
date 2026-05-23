@@ -84,9 +84,36 @@ class AlbumRepository:
 
         return cursor.fetchall()
 
-    def get_all_with_stats(self):
+    def get_all_with_stats(
+        self,
+        text: str | None = None,
+        genre: str | None = None,
+        year: int | None = None,
+    ):
+        clauses = []
+        params = []
+
+        if text:
+            clauses.append(
+                "(a.albumartist LIKE ? OR a.album LIKE ? OR a.folder_path LIKE ?)"
+            )
+            pattern = f"%{text}%"
+            params.extend([pattern, pattern, pattern])
+
+        if genre:
+            clauses.append("a.genre LIKE ?")
+            params.append(f"%{genre}%")
+
+        if year:
+            clauses.append("a.year = ?")
+            params.append(year)
+
+        where_sql = ""
+        if clauses:
+            where_sql = "WHERE " + " AND ".join(clauses)
+
         cursor = self.connection.execute(
-            """
+            f"""
             SELECT
                 a.*,
                 COUNT(t.id) AS track_count,
@@ -98,9 +125,11 @@ class AlbumRepository:
             FROM albums a
             LEFT JOIN tracks t ON t.album_id = a.id
             LEFT JOIN files f ON f.id = t.file_id
+            {where_sql}
             GROUP BY a.id
             ORDER BY a.albumartist, a.year, a.album
-            """
+            """,
+            tuple(params),
         )
 
         return cursor.fetchall()
