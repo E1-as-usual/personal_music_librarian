@@ -1,5 +1,9 @@
+from pathlib import Path
+
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QListWidget
-from PySide6.QtWidgets import QListWidgetItem, QPushButton, QSpinBox
+from PySide6.QtWidgets import QListWidgetItem, QMessageBox, QPushButton, QSpinBox
 from PySide6.QtWidgets import QTextEdit, QVBoxLayout, QWidget
 
 from personal_music_librarian.core.database.db import Database
@@ -15,6 +19,10 @@ class AlbumsPage(QWidget):
 
         self.refresh_button = QPushButton("Refresh Albums")
         self.refresh_button.clicked.connect(self.load_albums)
+
+        self.open_folder_button = QPushButton("Open Folder")
+        self.open_folder_button.clicked.connect(self.open_selected_folder)
+        self.open_folder_button.setEnabled(False)
 
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Search albums, artists, folders...")
@@ -39,6 +47,7 @@ class AlbumsPage(QWidget):
 
         toolbar = QHBoxLayout()
         toolbar.addWidget(self.refresh_button)
+        toolbar.addWidget(self.open_folder_button)
         toolbar.addWidget(self.search_box)
         toolbar.addWidget(self.genre_box)
         toolbar.addWidget(self.year_box)
@@ -58,6 +67,7 @@ class AlbumsPage(QWidget):
     def load_albums(self) -> None:
         self.album_list.clear()
         self.detail_box.clear()
+        self.open_folder_button.setEnabled(False)
 
         text = self.search_box.text().strip() or None
         genre = self.genre_box.text().strip() or None
@@ -92,9 +102,11 @@ class AlbumsPage(QWidget):
     def show_album(self, row: int) -> None:
         if row < 0 or row >= len(self.albums):
             self.detail_box.clear()
+            self.open_folder_button.setEnabled(False)
             return
 
         album = self.albums[row]
+        self.open_folder_button.setEnabled(bool(album["folder_path"]))
 
         with self.database.connection() as connection:
             repo = AlbumRepository(connection)
@@ -142,3 +154,25 @@ class AlbumsPage(QWidget):
             )
 
         self.detail_box.setPlainText("\n".join(lines))
+
+    def open_selected_folder(self) -> None:
+        row = self.album_list.currentRow()
+
+        if row < 0 or row >= len(self.albums):
+            return
+
+        folder_value = self.albums[row]["folder_path"]
+        if not folder_value:
+            QMessageBox.warning(self, "Open Folder", "This album has no folder path.")
+            return
+
+        folder = Path(folder_value)
+        if not folder.exists():
+            QMessageBox.warning(
+                self,
+                "Open Folder",
+                f"Folder does not exist:\n{folder}",
+            )
+            return
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
