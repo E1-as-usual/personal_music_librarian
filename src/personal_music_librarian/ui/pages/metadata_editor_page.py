@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QCheckBox
 from PySide6.QtWidgets import QFormLayout
+from PySide6.QtWidgets import QGroupBox
 from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QLineEdit
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import QWidget
 
 from personal_music_librarian.core.database.db import Database
 from personal_music_librarian.core.database.repositories.track_repo import TrackRepository
+from personal_music_librarian.core.services.batch_metadata_service import BatchMetadataService
 from personal_music_librarian.core.services.metadata_service import MetadataService
 
 
@@ -21,6 +23,7 @@ class MetadataEditorPage(QWidget):
         self.database = Database()
         self.database.initialize()
         self.metadata_service = MetadataService(self.database)
+        self.batch_service = BatchMetadataService(self.database)
         self.current_track_id: int | None = None
 
         self.track_id_box = QSpinBox()
@@ -65,6 +68,19 @@ class MetadataEditorPage(QWidget):
         self.save_button = QPushButton("Save Metadata")
         self.save_button.clicked.connect(self.save_metadata)
 
+        self.batch_ids_edit = QLineEdit()
+        self.batch_ids_edit.setPlaceholderText("1,2,3")
+
+        self.batch_apply_button = QPushButton("Apply Batch Metadata")
+        self.batch_apply_button.clicked.connect(self.apply_batch_metadata)
+
+        batch_layout = QFormLayout()
+        batch_layout.addRow("Track IDs", self.batch_ids_edit)
+        batch_layout.addRow(self.batch_apply_button)
+
+        batch_group = QGroupBox("Batch Metadata Editing")
+        batch_group.setLayout(batch_layout)
+
         self.status_label = QLabel("Load a track to edit metadata")
 
         layout = QVBoxLayout(self)
@@ -72,6 +88,7 @@ class MetadataEditorPage(QWidget):
         layout.addLayout(form)
         layout.addWidget(self.write_to_file_checkbox)
         layout.addWidget(self.save_button)
+        layout.addWidget(batch_group)
         layout.addWidget(self.status_label)
         layout.addStretch(1)
 
@@ -125,3 +142,43 @@ class MetadataEditorPage(QWidget):
 
         self.status_label.setText(f"Saved metadata for track {self.current_track_id}")
         QMessageBox.information(self, "Metadata Saved", "Track metadata updated")
+
+    def apply_batch_metadata(self) -> None:
+        raw = self.batch_ids_edit.text().strip()
+
+        if not raw:
+            QMessageBox.warning(self, "No Track IDs", "Enter at least one track ID")
+            return
+
+        try:
+            track_ids = [int(value.strip()) for value in raw.split(',') if value.strip()]
+        except ValueError:
+            QMessageBox.warning(self, "Invalid IDs", "Track IDs must be integers")
+            return
+
+        result = self.batch_service.update_tracks(
+            track_ids=track_ids,
+            values={
+                "artist": self.artist_edit.text().strip(),
+                "albumartist": self.albumartist_edit.text().strip(),
+                "album": self.album_edit.text().strip(),
+                "genre": self.genre_edit.text().strip(),
+                "date": self.date_edit.text().strip(),
+                "year": self.year_box.value(),
+            },
+            write_to_file=self.write_to_file_checkbox.isChecked(),
+        )
+
+        self.status_label.setText(
+            f"Batch applied: {result['applied']} updated"
+        )
+
+        QMessageBox.information(
+            self,
+            "Batch Metadata Complete",
+            (
+                f"Applied: {result['applied']}\n"
+                f"Skipped: {result['skipped']}\n"
+                f"Failed: {result['failed']}"
+            ),
+        )
