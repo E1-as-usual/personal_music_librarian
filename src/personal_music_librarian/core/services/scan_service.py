@@ -2,10 +2,12 @@ from pathlib import Path
 import logging
 
 from personal_music_librarian.core.database.db import Database
+from personal_music_librarian.core.database.repositories.album_repo import AlbumRepository
 from personal_music_librarian.core.database.repositories.file_repo import FileRepository
 from personal_music_librarian.core.database.repositories.track_repo import TrackRepository
 from personal_music_librarian.core.hashing import FileHasher
 from personal_music_librarian.core.metadata.validator import MetadataValidator
+from personal_music_librarian.core.models.album import Album
 from personal_music_librarian.core.scanner.file_reader import read_audio_properties
 from personal_music_librarian.core.scanner.file_reader import read_file_entry
 from personal_music_librarian.core.scanner.tag_reader import TagReader
@@ -34,6 +36,7 @@ class ScanService:
         total = len(paths)
 
         with self.database.connection() as connection:
+            album_repo = AlbumRepository(connection)
             file_repo = FileRepository(connection)
             track_repo = TrackRepository(connection)
 
@@ -58,10 +61,24 @@ class ScanService:
 
                     audio_properties = read_audio_properties(path)
 
+                    album = Album(
+                        id=None,
+                        albumartist=tags.get("ALBUMARTIST"),
+                        album=tags.get("ALBUM"),
+                        date=tags.get("DATE"),
+                        year=None,
+                        totaldiscs=None,
+                        genre=tags.get("GENRE"),
+                        folder_path=path.parent,
+                    )
+
+                    album_id = album_repo.upsert(album)
+
                     track = TrackMapper.from_tags(
                         file_id=file_id,
                         tags=tags,
                         audio_properties=audio_properties,
+                        album_id=album_id,
                     )
 
                     track_repo.upsert(track)
