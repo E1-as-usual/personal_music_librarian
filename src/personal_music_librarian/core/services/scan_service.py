@@ -1,4 +1,5 @@
 from pathlib import Path
+import logging
 
 from personal_music_librarian.core.database.db import Database
 from personal_music_librarian.core.database.repositories.file_repo import FileRepository
@@ -9,6 +10,9 @@ from personal_music_librarian.core.scanner.file_reader import read_audio_propert
 from personal_music_librarian.core.scanner.file_reader import read_file_entry
 from personal_music_librarian.core.scanner.tag_reader import TagReader
 from personal_music_librarian.core.scanner.track_mapper import TrackMapper
+
+
+logger = logging.getLogger(__name__)
 
 
 class ScanService:
@@ -33,6 +37,8 @@ class ScanService:
             file_repo = FileRepository(connection)
             track_repo = TrackRepository(connection)
 
+            file_repo.mark_all_missing()
+
             for path in paths:
                 if cancel_callback is not None and cancel_callback():
                     cancelled = 1
@@ -43,6 +49,7 @@ class ScanService:
                     file_entry.file_hash = FileHasher.hash_file(path)
 
                     file_id = file_repo.upsert(file_entry)
+                    file_repo.clear_missing(path)
 
                     tags = TagReader.read(path)
 
@@ -64,8 +71,22 @@ class ScanService:
                     if progress_callback is not None:
                         progress_callback(scanned, total, path)
 
-                except Exception:
+                except Exception as error:
                     failed += 1
+                    logger.exception(
+                        "Failed scanning file: %s",
+                        path,
+                        exc_info=error,
+                    )
+
+        logger.info(
+            "Scan complete | scanned=%s invalid=%s failed=%s total=%s cancelled=%s",
+            scanned,
+            invalid,
+            failed,
+            total,
+            cancelled,
+        )
 
         return {
             "scanned": scanned,
