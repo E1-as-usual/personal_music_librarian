@@ -23,6 +23,9 @@ class FileRepository:
                     audio_hash = ?,
                     codec = ?,
                     is_missing = ?,
+                    has_cover = ?,
+                    cover_mime = ?,
+                    cover_size_bytes = ?,
                     last_scanned = datetime('now')
                 WHERE path = ?
                 """,
@@ -36,6 +39,9 @@ class FileRepository:
                     file_entry.audio_hash,
                     file_entry.codec,
                     int(file_entry.is_missing),
+                    int(file_entry.has_cover),
+                    file_entry.cover_mime,
+                    file_entry.cover_size_bytes,
                     str(file_entry.path),
                 ),
             )
@@ -55,8 +61,11 @@ class FileRepository:
                 audio_hash,
                 codec,
                 is_missing,
+                has_cover,
+                cover_mime,
+                cover_size_bytes,
                 last_scanned
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             """,
             (
                 str(file_entry.path),
@@ -69,6 +78,9 @@ class FileRepository:
                 file_entry.audio_hash,
                 file_entry.codec,
                 int(file_entry.is_missing),
+                int(file_entry.has_cover),
+                file_entry.cover_mime,
+                file_entry.cover_size_bytes,
             ),
         )
 
