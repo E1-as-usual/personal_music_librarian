@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QMainWindow
+
+from personal_music_librarian.ui.pages.library_page import LibraryPage
 
 
 class MainWindow(QMainWindow):
@@ -9,6 +10,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Personal Music Librarian")
         self.resize(1400, 900)
 
-        self.setCentralWidget(
-            QLabel("Personal Music Librarian v0.1")
-        )
+        self.library_page = LibraryPage()
+
+        self.setCentralWidget(self.library_page)
