@@ -27,6 +27,7 @@ class TrackRepository:
         self.connection.execute(
             """
             UPDATE tracks SET
+                album_id = ?,
                 title = ?,
                 artist = ?,
                 albumartist = ?,
@@ -45,6 +46,7 @@ class TrackRepository:
             WHERE file_id = ?
             """,
             (
+                track.album_id,
                 track.title,
                 track.artist,
                 track.albumartist,
@@ -71,6 +73,7 @@ class TrackRepository:
             """
             INSERT INTO tracks (
                 file_id,
+                album_id,
                 title,
                 artist,
                 albumartist,
@@ -86,10 +89,11 @@ class TrackRepository:
                 sample_rate,
                 bit_depth,
                 channels
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 track.file_id,
+                track.album_id,
                 track.title,
                 track.artist,
                 track.albumartist,
