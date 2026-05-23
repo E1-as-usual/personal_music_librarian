@@ -84,12 +84,39 @@ class AlbumRepository:
 
         return cursor.fetchall()
 
+    def get_all_with_stats(self):
+        cursor = self.connection.execute(
+            """
+            SELECT
+                a.*,
+                COUNT(t.id) AS track_count,
+                COALESCE(SUM(t.duration), 0) AS total_duration,
+                COALESCE(SUM(f.size_bytes), 0) AS total_size_bytes,
+                MAX(t.sample_rate) AS max_sample_rate,
+                MAX(t.bit_depth) AS max_bit_depth,
+                SUM(CASE WHEN f.is_missing = 1 THEN 1 ELSE 0 END) AS missing_count
+            FROM albums a
+            LEFT JOIN tracks t ON t.album_id = a.id
+            LEFT JOIN files f ON f.id = t.file_id
+            GROUP BY a.id
+            ORDER BY a.albumartist, a.year, a.album
+            """
+        )
+
+        return cursor.fetchall()
+
     def get_tracks(self, album_id: int):
         cursor = self.connection.execute(
             """
-            SELECT * FROM tracks
-            WHERE album_id = ?
-            ORDER BY discnumber, tracknumber
+            SELECT
+                t.*,
+                f.path,
+                f.size_bytes,
+                f.is_missing
+            FROM tracks t
+            JOIN files f ON f.id = t.file_id
+            WHERE t.album_id = ?
+            ORDER BY t.discnumber, t.tracknumber
             """,
             (album_id,),
         )
