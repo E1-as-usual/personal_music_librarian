@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS files (
     audio_hash TEXT,
     codec TEXT,
     is_missing INTEGER DEFAULT 0,
+    has_cover INTEGER DEFAULT 0,
+    cover_mime TEXT,
+    cover_size_bytes INTEGER,
     last_scanned TEXT
 );
 
@@ -68,6 +71,9 @@ ON files(path);
 
 CREATE INDEX IF NOT EXISTS idx_files_hash
 ON files(file_hash);
+
+CREATE INDEX IF NOT EXISTS idx_files_has_cover
+ON files(has_cover);
 
 CREATE INDEX IF NOT EXISTS idx_tracks_artist
 ON tracks(artist);
