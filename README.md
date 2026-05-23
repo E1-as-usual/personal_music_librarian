@@ -1,6 +1,6 @@
 # Personal Music Librarian
 
-A safe desktop FLAC library manager for scanning, organizing, deduplicating, renaming, exporting, and eventually converting a music library for SD-card use on FiiO DAPs and similar players.
+A safe, offline-first desktop FLAC library manager for scanning, organizing, deduplicating, renaming, exporting, and eventually converting a music library for SD-card use on FiiO DAPs and similar players.
 
 ## Project principle
 
@@ -11,6 +11,20 @@ Scan -> Preview -> Confirm -> Apply -> Log
 ```
 
 No destructive file operation should happen without a preview and an operation log.
+
+## Offline-first and shareable
+
+The application must work fully offline by default.
+
+- No login is required.
+- No cloud service is required.
+- No remote database is required.
+- No telemetry is collected.
+- Scanning, metadata editing, duplicate detection, renaming, exporting, and conversion run locally.
+- SQLite databases, settings, logs, and export history stay local to the user's machine.
+- Internet access may only be used by optional future features, and those features must be disabled by default.
+
+Shareability is handled through local exports, not cloud sync. The app should support exporting SD-card-ready folders, playlists, logs, manifests, reports, and optional backup packages that can be copied or shared manually.
 
 ## Version 0.1 target
 
