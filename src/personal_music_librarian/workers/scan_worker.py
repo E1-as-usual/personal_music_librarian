@@ -17,6 +17,13 @@ class ScanWorker(QObject):
         super().__init__()
 
         self.folder = folder
+        self.cancel_requested = False
+
+    def cancel(self) -> None:
+        self.cancel_requested = True
+
+    def is_cancelled(self) -> bool:
+        return self.cancel_requested
 
     def run(self) -> None:
         try:
@@ -29,6 +36,7 @@ class ScanWorker(QObject):
             result = service.scan_library(
                 self.folder,
                 progress_callback=self._on_progress,
+                cancel_callback=self.is_cancelled,
             )
 
             self.finished.emit(result)
