@@ -5,8 +5,47 @@ from mutagen.flac import FLAC
 from personal_music_librarian.core.models.file_entry import FileEntry
 
 
+COVER_FILENAMES = {
+    "cover.jpg",
+    "cover.jpeg",
+    "cover.png",
+    "folder.jpg",
+    "folder.jpeg",
+    "folder.png",
+    "front.jpg",
+    "front.jpeg",
+    "front.png",
+}
+
+
 def read_file_entry(path: Path) -> FileEntry:
     stat = path.stat()
+
+    has_cover = False
+    cover_mime = None
+    cover_size_bytes = None
+
+    audio = FLAC(path)
+
+    if audio.pictures:
+        picture = audio.pictures[0]
+        has_cover = True
+        cover_mime = picture.mime
+        cover_size_bytes = len(picture.data)
+    else:
+        for candidate in COVER_FILENAMES:
+            cover_path = path.parent / candidate
+            if cover_path.exists():
+                has_cover = True
+                cover_size_bytes = cover_path.stat().st_size
+
+                suffix = cover_path.suffix.lower()
+                if suffix in {".jpg", ".jpeg"}:
+                    cover_mime = "image/jpeg"
+                elif suffix == ".png":
+                    cover_mime = "image/png"
+
+                break
 
     return FileEntry(
         id=None,
@@ -20,6 +59,9 @@ def read_file_entry(path: Path) -> FileEntry:
         audio_hash=None,
         codec="FLAC",
         is_missing=False,
+        has_cover=has_cover,
+        cover_mime=cover_mime,
+        cover_size_bytes=cover_size_bytes,
     )
 
 
