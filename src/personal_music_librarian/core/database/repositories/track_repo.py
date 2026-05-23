@@ -132,20 +132,42 @@ class TrackRepository:
 
     def search(
         self,
+        text: str | None = None,
         artist: str | None = None,
         album: str | None = None,
+        genre: str | None = None,
         year: int | None = None,
         missing_title: bool = False,
+        missing_only: bool = False,
     ):
         query = QueryBuilder()
         query.like("t.artist", artist)
         query.like("t.album", album)
+        query.like("t.genre", genre)
         query.equals("t.year", year)
+        query.equals("f.is_missing", 1 if missing_only else None)
         query.is_null_or_empty("t.title", missing_title)
 
         where = query.build()
+        clauses = [where.sql.replace("WHERE ", "")] if where.sql else []
+        params = list(where.params)
 
-        sql = TRACK_SELECT + f"{where.sql} ORDER BY artist, album, discnumber, tracknumber"
+        if text:
+            clauses.append(
+                "(t.title LIKE ? OR t.artist LIKE ? OR t.album LIKE ? OR t.genre LIKE ?)"
+            )
+            pattern = f"%{text}%"
+            params.extend([pattern, pattern, pattern, pattern])
 
-        cursor = self.connection.execute(sql, where.params)
+        where_sql = ""
+        if clauses:
+            where_sql = "WHERE " + " AND ".join(clauses)
+
+        sql = (
+            TRACK_SELECT
+            + f"{where_sql} "
+            + "ORDER BY artist, album, discnumber, tracknumber"
+        )
+
+        cursor = self.connection.execute(sql, tuple(params))
         return cursor.fetchall()
