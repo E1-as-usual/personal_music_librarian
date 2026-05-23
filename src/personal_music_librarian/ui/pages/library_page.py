@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from PySide6.QtCore import QThread
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QLabel
@@ -11,8 +12,8 @@ from PySide6.QtWidgets import QWidget
 
 from personal_music_librarian.core.database.db import Database
 from personal_music_librarian.core.database.repositories.track_repo import TrackRepository
-from personal_music_librarian.core.services.scan_service import ScanService
 from personal_music_librarian.ui.models.track_table_model import TrackTableModel
+from personal_music_librarian.workers.scan_worker import ScanWorker
 
 
 class LibraryPage(QWidget):
@@ -22,7 +23,8 @@ class LibraryPage(QWidget):
         self.database = Database()
         self.database.initialize()
 
-        self.scan_service = ScanService(self.database)
+        self.scan_thread: QThread | None = None
+        self.scan_worker: ScanWorker | None = None
         self.model = TrackTableModel()
 
         self.search_box = QLineEdit()
@@ -62,13 +64,42 @@ class LibraryPage(QWidget):
         if not folder:
             return
 
-        result = self.scan_service.scan_library(Path(folder))
+        self.scan_button.setEnabled(False)
+        self.status_label.setText("Preparing scan...")
 
+        self.scan_thread = QThread()
+        self.scan_worker = ScanWorker(Path(folder))
+        self.scan_worker.moveToThread(self.scan_thread)
+
+        self.scan_thread.started.connect(self.scan_worker.run)
+        self.scan_worker.status.connect(self.status_label.setText)
+        self.scan_worker.finished.connect(self.on_scan_finished)
+        self.scan_worker.failed.connect(self.on_scan_failed)
+        self.scan_worker.finished.connect(self.scan_thread.quit)
+        self.scan_worker.failed.connect(self.scan_thread.quit)
+        self.scan_thread.finished.connect(self.cleanup_scan_thread)
+
+        self.scan_thread.start()
+
+    def on_scan_finished(self, result: dict) -> None:
+        self.scan_button.setEnabled(True)
         self.status_label.setText(
             f"Scanned {result['scanned']} tracks | Invalid: {result['invalid']}"
         )
-
         self.reload_tracks()
+
+    def on_scan_failed(self, error: str) -> None:
+        self.scan_button.setEnabled(True)
+        self.status_label.setText(f"Scan failed: {error}")
+
+    def cleanup_scan_thread(self) -> None:
+        if self.scan_worker is not None:
+            self.scan_worker.deleteLater()
+            self.scan_worker = None
+
+        if self.scan_thread is not None:
+            self.scan_thread.deleteLater()
+            self.scan_thread = None
 
     def reload_tracks(self) -> None:
         search = self.search_box.text().strip()
