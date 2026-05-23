@@ -47,3 +47,15 @@ class LogRepository:
             (limit,),
         )
         return cursor.fetchall()
+
+    def latest_reversible(self):
+        cursor = self.connection.execute(
+            """
+            SELECT * FROM operation_logs
+            WHERE operation_type IN ('rename', 'duplicate_move')
+              AND status = 'applied'
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1
+            """
+        )
+        return cursor.fetchone()
