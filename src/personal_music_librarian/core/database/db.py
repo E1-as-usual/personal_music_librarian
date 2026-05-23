@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 import sqlite3
 
 
@@ -11,10 +13,21 @@ class Database:
         self.root = root or Path.cwd()
         self.path = self.root / DATABASE_NAME
 
-    def connection(self) -> sqlite3.Connection:
+    @contextmanager
+    def connection(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
-        return connection
+        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute("PRAGMA journal_mode = WAL")
+
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
     def initialize(self) -> None:
         schema_path = Path(__file__).with_name(SCHEMA_FILE)
@@ -22,4 +35,3 @@ class Database:
 
         with self.connection() as connection:
             connection.executescript(schema)
-            connection.commit()
