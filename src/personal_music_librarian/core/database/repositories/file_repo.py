@@ -74,6 +74,25 @@ class FileRepository:
 
         return int(cursor.lastrowid)
 
+    def update_path(self, source: Path, target: Path) -> None:
+        self.connection.execute(
+            """
+            UPDATE files SET
+                path = ?,
+                parent_folder = ?,
+                filename = ?,
+                is_missing = 0,
+                last_scanned = datetime('now')
+            WHERE path = ?
+            """,
+            (
+                str(target),
+                str(target.parent),
+                target.name,
+                str(source),
+            ),
+        )
+
     def get_by_path(self, path: Path):
         cursor = self.connection.execute(
             "SELECT * FROM files WHERE path = ?",
