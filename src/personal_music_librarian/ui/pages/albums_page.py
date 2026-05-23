@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidget, QListWidgetItem
-from PySide6.QtWidgets import QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QListWidget
+from PySide6.QtWidgets import QListWidgetItem, QPushButton, QSpinBox
+from PySide6.QtWidgets import QTextEdit, QVBoxLayout, QWidget
 
 from personal_music_librarian.core.database.db import Database
 from personal_music_librarian.core.database.repositories.album_repo import AlbumRepository
@@ -14,14 +15,33 @@ class AlbumsPage(QWidget):
 
         self.refresh_button = QPushButton("Refresh Albums")
         self.refresh_button.clicked.connect(self.load_albums)
+
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Search albums, artists, folders...")
+        self.search_box.textChanged.connect(self.load_albums)
+
+        self.genre_box = QLineEdit()
+        self.genre_box.setPlaceholderText("Genre")
+        self.genre_box.textChanged.connect(self.load_albums)
+
+        self.year_box = QSpinBox()
+        self.year_box.setMaximum(9999)
+        self.year_box.setSpecialValueText("Any year")
+        self.year_box.valueChanged.connect(self.load_albums)
+
         self.summary_label = QLabel("No albums loaded")
+
         self.album_list = QListWidget()
         self.album_list.currentRowChanged.connect(self.show_album)
+
         self.detail_box = QTextEdit()
         self.detail_box.setReadOnly(True)
 
         toolbar = QHBoxLayout()
         toolbar.addWidget(self.refresh_button)
+        toolbar.addWidget(self.search_box)
+        toolbar.addWidget(self.genre_box)
+        toolbar.addWidget(self.year_box)
         toolbar.addWidget(self.summary_label)
         toolbar.addStretch(1)
 
@@ -32,23 +52,32 @@ class AlbumsPage(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(toolbar)
         layout.addLayout(content)
+
         self.load_albums()
 
     def load_albums(self) -> None:
         self.album_list.clear()
         self.detail_box.clear()
 
+        text = self.search_box.text().strip() or None
+        genre = self.genre_box.text().strip() or None
+        year = self.year_box.value() or None
+
         with self.database.connection() as connection:
             repo = AlbumRepository(connection)
-            self.albums = repo.get_all_with_stats()
+            self.albums = repo.get_all_with_stats(
+                text=text,
+                genre=genre,
+                year=year,
+            )
 
         for album in self.albums:
             artist = album["albumartist"] or "Unknown Artist"
             title = album["album"] or "Unknown Album"
-            year = album["year"] or ""
+            year_value = album["year"] or ""
             tracks = album["track_count"] or 0
 
-            prefix = f"{year} | " if year else ""
+            prefix = f"{year_value} | " if year_value else ""
             suffix = f" [{tracks} tracks]"
 
             self.album_list.addItem(
