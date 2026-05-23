@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QToolBar
 
 from personal_music_librarian.ui.pages.duplicates_page import DuplicatesPage
 from personal_music_librarian.ui.pages.library_page import LibraryPage
+from personal_music_librarian.ui.pages.rename_preview_page import RenamePreviewPage
 
 
 class MainWindow(QMainWindow):
@@ -15,10 +16,12 @@ class MainWindow(QMainWindow):
 
         self.library_page = LibraryPage()
         self.duplicates_page = DuplicatesPage()
+        self.rename_preview_page = RenamePreviewPage()
 
         self.stack = QStackedWidget()
         self.stack.addWidget(self.library_page)
         self.stack.addWidget(self.duplicates_page)
+        self.stack.addWidget(self.rename_preview_page)
 
         toolbar = QToolBar("Navigation")
         self.addToolBar(toolbar)
@@ -31,6 +34,11 @@ class MainWindow(QMainWindow):
         duplicates_action = toolbar.addAction("Duplicates")
         duplicates_action.triggered.connect(
             lambda: self.stack.setCurrentWidget(self.duplicates_page)
+        )
+
+        rename_action = toolbar.addAction("Rename Preview")
+        rename_action.triggered.connect(
+            lambda: self.stack.setCurrentWidget(self.rename_preview_page)
         )
 
         self.setCentralWidget(self.stack)
