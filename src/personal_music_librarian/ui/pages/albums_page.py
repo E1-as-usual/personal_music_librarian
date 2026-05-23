@@ -37,18 +37,26 @@ class AlbumsPage(QWidget):
     def load_albums(self) -> None:
         self.album_list.clear()
         self.detail_box.clear()
+
         with self.database.connection() as connection:
             repo = AlbumRepository(connection)
-            self.albums = repo.get_all()
+            self.albums = repo.get_all_with_stats()
 
         for album in self.albums:
             artist = album["albumartist"] or "Unknown Artist"
             title = album["album"] or "Unknown Album"
             year = album["year"] or ""
+            tracks = album["track_count"] or 0
+
             prefix = f"{year} | " if year else ""
-            self.album_list.addItem(QListWidgetItem(f"{prefix}{artist} - {title}"))
+            suffix = f" [{tracks} tracks]"
+
+            self.album_list.addItem(
+                QListWidgetItem(f"{prefix}{artist} - {title}{suffix}")
+            )
 
         self.summary_label.setText(f"{len(self.albums)} albums")
+
         if self.albums:
             self.album_list.setCurrentRow(0)
 
@@ -58,9 +66,17 @@ class AlbumsPage(QWidget):
             return
 
         album = self.albums[row]
+
         with self.database.connection() as connection:
             repo = AlbumRepository(connection)
             tracks = repo.get_tracks(int(album["id"]))
+
+        total_duration = int(album["total_duration"] or 0)
+        minutes = total_duration // 60
+        seconds = total_duration % 60
+
+        total_size_bytes = int(album["total_size_bytes"] or 0)
+        total_size_mb = total_size_bytes / (1024 * 1024)
 
         lines = [
             album["album"] or "Unknown Album",
@@ -70,7 +86,14 @@ class AlbumsPage(QWidget):
             f"Year: {album['year'] or ''}",
             f"Genre: {album['genre'] or ''}",
             f"Folder: {album['folder_path'] or ''}",
-            f"Tracks: {len(tracks)}",
+            "",
+            "Statistics:",
+            f"  Tracks: {album['track_count'] or 0}",
+            f"  Runtime: {minutes}:{seconds:02d}",
+            f"  Size: {total_size_mb:.1f} MB",
+            f"  Max sample rate: {album['max_sample_rate'] or ''}",
+            f"  Max bit depth: {album['max_bit_depth'] or ''}",
+            f"  Missing files: {album['missing_count'] or 0}",
             "",
             "Track list:",
         ]
@@ -80,6 +103,13 @@ class AlbumsPage(QWidget):
             number = track["tracknumber"] or "?"
             title = track["title"] or "Unknown Title"
             artist = track["artist"] or "Unknown Artist"
-            lines.append(f"  {disc}.{number} - {artist} - {title}")
+
+            duration = int(track["duration"] or 0)
+            track_minutes = duration // 60
+            track_seconds = duration % 60
+
+            lines.append(
+                f"  {disc}.{number} - {artist} - {title} [{track_minutes}:{track_seconds:02d}]"
+            )
 
         self.detail_box.setPlainText("\n".join(lines))
