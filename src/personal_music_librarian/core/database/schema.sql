@@ -34,6 +34,23 @@ CREATE TABLE IF NOT EXISTS tracks (
     FOREIGN KEY(file_id) REFERENCES files(id)
 );
 
+CREATE TABLE IF NOT EXISTS duplicate_groups (
+    id INTEGER PRIMARY KEY,
+    duplicate_type TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS duplicate_members (
+    group_id INTEGER NOT NULL,
+    track_id INTEGER NOT NULL,
+    is_keeper INTEGER DEFAULT 0,
+    reason TEXT,
+    PRIMARY KEY (group_id, track_id),
+    FOREIGN KEY(group_id) REFERENCES duplicate_groups(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id)
+);
+
 CREATE TABLE IF NOT EXISTS operation_logs (
     id INTEGER PRIMARY KEY,
     operation_type TEXT NOT NULL,
@@ -57,3 +74,9 @@ ON tracks(artist);
 
 CREATE INDEX IF NOT EXISTS idx_tracks_album
 ON tracks(album);
+
+CREATE INDEX IF NOT EXISTS idx_duplicate_members_group
+ON duplicate_members(group_id);
+
+CREATE INDEX IF NOT EXISTS idx_duplicate_members_track
+ON duplicate_members(track_id);
