@@ -35,11 +35,16 @@ class LibraryPage(QWidget):
         self.scan_button = QPushButton("Scan Library")
         self.scan_button.clicked.connect(self.scan_library)
 
+        self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.clicked.connect(self.cancel_scan)
+
         self.refresh_button = QPushButton("Refresh")
         self.refresh_button.clicked.connect(self.reload_tracks)
 
         toolbar = QHBoxLayout()
         toolbar.addWidget(self.scan_button)
+        toolbar.addWidget(self.cancel_button)
         toolbar.addWidget(self.refresh_button)
         toolbar.addWidget(self.search_box)
 
@@ -72,6 +77,7 @@ class LibraryPage(QWidget):
             return
 
         self.scan_button.setEnabled(False)
+        self.cancel_button.setEnabled(True)
         self.status_label.setText("Preparing scan...")
         self.current_file_label.setText("")
         self.progress_bar.setValue(0)
@@ -92,6 +98,14 @@ class LibraryPage(QWidget):
 
         self.scan_thread.start()
 
+    def cancel_scan(self) -> None:
+        if self.scan_worker is None:
+            return
+
+        self.scan_worker.cancel()
+        self.cancel_button.setEnabled(False)
+        self.status_label.setText("Cancelling scan...")
+
     def on_scan_progress(self, done: int, total: int, path: str) -> None:
         self.progress_bar.setMaximum(total)
         self.progress_bar.setValue(done)
@@ -100,15 +114,24 @@ class LibraryPage(QWidget):
 
     def on_scan_finished(self, result: dict) -> None:
         self.scan_button.setEnabled(True)
+        self.cancel_button.setEnabled(False)
         self.progress_bar.setVisible(False)
         self.current_file_label.setText("")
-        self.status_label.setText(
-            f"Scanned {result['scanned']} tracks | Invalid: {result['invalid']}"
-        )
+
+        if result.get("cancelled"):
+            self.status_label.setText(
+                f"Scan cancelled after {result['scanned']} of {result['total']} tracks"
+            )
+        else:
+            self.status_label.setText(
+                f"Scanned {result['scanned']} tracks | Invalid: {result['invalid']}"
+            )
+
         self.reload_tracks()
 
     def on_scan_failed(self, error: str) -> None:
         self.scan_button.setEnabled(True)
+        self.cancel_button.setEnabled(False)
         self.progress_bar.setVisible(False)
         self.status_label.setText(f"Scan failed: {error}")
 
