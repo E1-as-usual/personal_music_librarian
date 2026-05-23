@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QMainWindow
 from PySide6.QtWidgets import QStackedWidget
 from PySide6.QtWidgets import QToolBar
 
+from personal_music_librarian.ui.pages.album_art_page import AlbumArtPage
 from personal_music_librarian.ui.pages.duplicates_page import DuplicatesPage
 from personal_music_librarian.ui.pages.history_page import HistoryPage
 from personal_music_librarian.ui.pages.library_page import LibraryPage
@@ -21,6 +22,7 @@ class MainWindow(QMainWindow):
         self.rename_preview_page = RenamePreviewPage()
         self.history_page = HistoryPage()
         self.metadata_editor_page = MetadataEditorPage()
+        self.album_art_page = AlbumArtPage()
 
         self.stack = QStackedWidget()
         self.stack.addWidget(self.library_page)
@@ -28,6 +30,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.rename_preview_page)
         self.stack.addWidget(self.history_page)
         self.stack.addWidget(self.metadata_editor_page)
+        self.stack.addWidget(self.album_art_page)
 
         toolbar = QToolBar("Navigation")
         self.addToolBar(toolbar)
@@ -55,6 +58,11 @@ class MainWindow(QMainWindow):
         metadata_action = toolbar.addAction("Metadata")
         metadata_action.triggered.connect(
             lambda: self.stack.setCurrentWidget(self.metadata_editor_page)
+        )
+
+        album_art_action = toolbar.addAction("Album Art")
+        album_art_action.triggered.connect(
+            lambda: self.stack.setCurrentWidget(self.album_art_page)
         )
 
         self.setCentralWidget(self.stack)
