@@ -18,10 +18,12 @@ class TrackMapper:
         file_id: int,
         tags: dict[str, str | None],
         audio_properties: dict,
+        album_id: int | None = None,
     ) -> Track:
         return Track(
             id=None,
             file_id=file_id,
+            album_id=album_id,
             title=MetadataNormalizer.normalize_text(tags.get(TITLE)),
             artist=MetadataNormalizer.normalize_text(tags.get(ARTIST)),
             albumartist=MetadataNormalizer.normalize_text(
