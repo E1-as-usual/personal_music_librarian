@@ -5,6 +5,7 @@ from dataclasses import dataclass
 class Track:
     id: int | None
     file_id: int
+    album_id: int | None
     title: str | None
     artist: str | None
     albumartist: str | None
