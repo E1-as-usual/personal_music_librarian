@@ -1,12 +1,14 @@
 from pathlib import Path
 
 from PySide6.QtCore import QThread
+from PySide6.QtWidgets import QCheckBox
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QLineEdit
 from PySide6.QtWidgets import QProgressBar
 from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QSpinBox
 from PySide6.QtWidgets import QTableView
 from PySide6.QtWidgets import QVBoxLayout
 from PySide6.QtWidgets import QWidget
@@ -29,8 +31,20 @@ class LibraryPage(QWidget):
         self.model = TrackTableModel()
 
         self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("Search artist or album...")
+        self.search_box.setPlaceholderText("Search title, artist, album, genre...")
         self.search_box.textChanged.connect(self.reload_tracks)
+
+        self.genre_box = QLineEdit()
+        self.genre_box.setPlaceholderText("Genre")
+        self.genre_box.textChanged.connect(self.reload_tracks)
+
+        self.year_box = QSpinBox()
+        self.year_box.setMaximum(9999)
+        self.year_box.setSpecialValueText("Any year")
+        self.year_box.valueChanged.connect(self.reload_tracks)
+
+        self.missing_only_checkbox = QCheckBox("Missing only")
+        self.missing_only_checkbox.stateChanged.connect(self.reload_tracks)
 
         self.scan_button = QPushButton("Scan Library")
         self.scan_button.clicked.connect(self.scan_library)
@@ -47,9 +61,13 @@ class LibraryPage(QWidget):
         toolbar.addWidget(self.cancel_button)
         toolbar.addWidget(self.refresh_button)
         toolbar.addWidget(self.search_box)
+        toolbar.addWidget(self.genre_box)
+        toolbar.addWidget(self.year_box)
+        toolbar.addWidget(self.missing_only_checkbox)
 
         self.status_label = QLabel("Ready")
         self.current_file_label = QLabel("")
+        self.result_count_label = QLabel("0 tracks")
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
@@ -60,6 +78,7 @@ class LibraryPage(QWidget):
 
         layout = QVBoxLayout(self)
         layout.addLayout(toolbar)
+        layout.addWidget(self.result_count_label)
         layout.addWidget(self.table)
         layout.addWidget(self.progress_bar)
         layout.addWidget(self.status_label)
@@ -145,16 +164,19 @@ class LibraryPage(QWidget):
             self.scan_thread = None
 
     def reload_tracks(self) -> None:
-        search = self.search_box.text().strip()
+        text = self.search_box.text().strip() or None
+        genre = self.genre_box.text().strip() or None
+        year = self.year_box.value() or None
+        missing_only = self.missing_only_checkbox.isChecked()
 
         with self.database.connection() as connection:
             repo = TrackRepository(connection)
-
-            if search:
-                rows = repo.search(artist=search)
-                if not rows:
-                    rows = repo.search(album=search)
-            else:
-                rows = repo.get_all()
+            rows = repo.search(
+                text=text,
+                genre=genre,
+                year=year,
+                missing_only=missing_only,
+            )
 
             self.model.set_rows(rows)
+            self.result_count_label.setText(f"{len(rows)} tracks")
