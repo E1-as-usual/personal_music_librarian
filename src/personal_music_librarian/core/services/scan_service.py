@@ -24,6 +24,8 @@ class ScanService:
         scanned = 0
         invalid = 0
         cancelled = 0
+        failed = 0
+
         paths = list(root.rglob("*.flac"))
         total = len(paths)
 
@@ -36,34 +38,39 @@ class ScanService:
                     cancelled = 1
                     break
 
-                file_entry = read_file_entry(path)
-                file_entry.file_hash = FileHasher.hash_file(path)
+                try:
+                    file_entry = read_file_entry(path)
+                    file_entry.file_hash = FileHasher.hash_file(path)
 
-                file_id = file_repo.upsert(file_entry)
+                    file_id = file_repo.upsert(file_entry)
 
-                tags = TagReader.read(path)
+                    tags = TagReader.read(path)
 
-                if not MetadataValidator.is_valid(tags):
-                    invalid += 1
+                    if not MetadataValidator.is_valid(tags):
+                        invalid += 1
 
-                audio_properties = read_audio_properties(path)
+                    audio_properties = read_audio_properties(path)
 
-                track = TrackMapper.from_tags(
-                    file_id=file_id,
-                    tags=tags,
-                    audio_properties=audio_properties,
-                )
+                    track = TrackMapper.from_tags(
+                        file_id=file_id,
+                        tags=tags,
+                        audio_properties=audio_properties,
+                    )
 
-                track_repo.insert(track)
+                    track_repo.upsert(track)
 
-                scanned += 1
+                    scanned += 1
 
-                if progress_callback is not None:
-                    progress_callback(scanned, total, path)
+                    if progress_callback is not None:
+                        progress_callback(scanned, total, path)
+
+                except Exception:
+                    failed += 1
 
         return {
             "scanned": scanned,
             "invalid": invalid,
+            "failed": failed,
             "total": total,
             "cancelled": cancelled,
         }
