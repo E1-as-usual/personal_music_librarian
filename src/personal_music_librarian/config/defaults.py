@@ -1,0 +1,4 @@
+APP_NAME = "FLACLibraryManager"
+DEFAULT_THEME = "dark"
+DEFAULT_ADVANCED_MODE = False
+DEFAULT_LIBRARY_FOLDERS: list[str] = []
