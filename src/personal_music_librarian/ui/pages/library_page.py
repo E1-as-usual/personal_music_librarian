@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWidgets import QHBoxLayout
 from PySide6.QtWidgets import QLabel
 from PySide6.QtWidgets import QLineEdit
+from PySide6.QtWidgets import QProgressBar
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtWidgets import QTableView
 from PySide6.QtWidgets import QVBoxLayout
@@ -43,6 +44,10 @@ class LibraryPage(QWidget):
         toolbar.addWidget(self.search_box)
 
         self.status_label = QLabel("Ready")
+        self.current_file_label = QLabel("")
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
 
         self.table = QTableView()
         self.table.setModel(self.model)
@@ -51,7 +56,9 @@ class LibraryPage(QWidget):
         layout = QVBoxLayout(self)
         layout.addLayout(toolbar)
         layout.addWidget(self.table)
+        layout.addWidget(self.progress_bar)
         layout.addWidget(self.status_label)
+        layout.addWidget(self.current_file_label)
 
         self.reload_tracks()
 
@@ -66,6 +73,9 @@ class LibraryPage(QWidget):
 
         self.scan_button.setEnabled(False)
         self.status_label.setText("Preparing scan...")
+        self.current_file_label.setText("")
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
 
         self.scan_thread = QThread()
         self.scan_worker = ScanWorker(Path(folder))
@@ -73,6 +83,7 @@ class LibraryPage(QWidget):
 
         self.scan_thread.started.connect(self.scan_worker.run)
         self.scan_worker.status.connect(self.status_label.setText)
+        self.scan_worker.progress.connect(self.on_scan_progress)
         self.scan_worker.finished.connect(self.on_scan_finished)
         self.scan_worker.failed.connect(self.on_scan_failed)
         self.scan_worker.finished.connect(self.scan_thread.quit)
@@ -81,8 +92,16 @@ class LibraryPage(QWidget):
 
         self.scan_thread.start()
 
+    def on_scan_progress(self, done: int, total: int, path: str) -> None:
+        self.progress_bar.setMaximum(total)
+        self.progress_bar.setValue(done)
+        self.status_label.setText(f"Scanning {done} of {total}")
+        self.current_file_label.setText(path)
+
     def on_scan_finished(self, result: dict) -> None:
         self.scan_button.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        self.current_file_label.setText("")
         self.status_label.setText(
             f"Scanned {result['scanned']} tracks | Invalid: {result['invalid']}"
         )
@@ -90,6 +109,7 @@ class LibraryPage(QWidget):
 
     def on_scan_failed(self, error: str) -> None:
         self.scan_button.setEnabled(True)
+        self.progress_bar.setVisible(False)
         self.status_label.setText(f"Scan failed: {error}")
 
     def cleanup_scan_thread(self) -> None:
