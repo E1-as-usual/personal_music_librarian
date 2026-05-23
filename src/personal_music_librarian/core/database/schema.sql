@@ -16,9 +16,24 @@ CREATE TABLE IF NOT EXISTS files (
     last_scanned TEXT
 );
 
+CREATE TABLE IF NOT EXISTS albums (
+    id INTEGER PRIMARY KEY,
+    albumartist TEXT,
+    album TEXT,
+    date TEXT,
+    year INTEGER,
+    totaldiscs INTEGER,
+    genre TEXT,
+    folder_path TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(albumartist, album, date, folder_path)
+);
+
 CREATE TABLE IF NOT EXISTS tracks (
     id INTEGER PRIMARY KEY,
     file_id INTEGER NOT NULL,
+    album_id INTEGER,
     title TEXT,
     artist TEXT,
     albumartist TEXT,
@@ -34,7 +49,8 @@ CREATE TABLE IF NOT EXISTS tracks (
     sample_rate INTEGER,
     bit_depth INTEGER,
     channels INTEGER,
-    FOREIGN KEY(file_id) REFERENCES files(id)
+    FOREIGN KEY(file_id) REFERENCES files(id),
+    FOREIGN KEY(album_id) REFERENCES albums(id)
 );
 
 CREATE TABLE IF NOT EXISTS duplicate_groups (
@@ -74,6 +90,15 @@ ON files(file_hash);
 
 CREATE INDEX IF NOT EXISTS idx_files_has_cover
 ON files(has_cover);
+
+CREATE INDEX IF NOT EXISTS idx_albums_identity
+ON albums(albumartist, album, date);
+
+CREATE INDEX IF NOT EXISTS idx_albums_folder_path
+ON albums(folder_path);
+
+CREATE INDEX IF NOT EXISTS idx_tracks_album_id
+ON tracks(album_id);
 
 CREATE INDEX IF NOT EXISTS idx_tracks_artist
 ON tracks(artist);
