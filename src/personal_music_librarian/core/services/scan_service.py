@@ -15,15 +15,17 @@ class ScanService:
     def __init__(self, database: Database) -> None:
         self.database = database
 
-    def scan_library(self, root: Path) -> dict[str, int]:
+    def scan_library(self, root: Path, progress_callback=None) -> dict[str, int]:
         scanned = 0
         invalid = 0
+        paths = list(root.rglob("*.flac"))
+        total = len(paths)
 
         with self.database.connection() as connection:
             file_repo = FileRepository(connection)
             track_repo = TrackRepository(connection)
 
-            for path in root.rglob("*.flac"):
+            for path in paths:
                 file_entry = read_file_entry(path)
                 file_entry.file_hash = FileHasher.hash_file(path)
 
@@ -46,7 +48,11 @@ class ScanService:
 
                 scanned += 1
 
+                if progress_callback is not None:
+                    progress_callback(scanned, total, path)
+
         return {
             "scanned": scanned,
             "invalid": invalid,
+            "total": total,
         }
